@@ -1,16 +1,23 @@
 #![deny(clippy::all)]
-use image::{DynamicImage, GenericImageView, ImageBuffer, Rgba};
+use std::io::{BufWriter, Read};
+
+use image::{DynamicImage, GenericImageView, ImageBuffer, ImageFormat, RgbImage, Rgba};
+use napi::{bindgen_prelude::Buffer, JsBuffer};
 
 #[macro_use]
 extern crate napi_derive;
 
 
-fn resize_image(image_path: &str, target_size: u32) -> DynamicImage {
-    let img = image::open(image_path).expect("Failed to open image");
+fn resize_image(image_buffer: &Buffer, target_size: u32) -> DynamicImage {
+      // 尝试使用 `image` 库解码图片
+      let img = match image::load_from_memory(&image_buffer) {
+        Ok(image) => image,
+        Err(_) => image::DynamicImage::new_rgb8(1, 1)
+    };
     let resized = img.resize_to_fill(target_size, target_size, image::imageops::FilterType::Lanczos3);
     resized
 }
-fn generate(images: Vec<&str>, size: u32) -> DynamicImage {
+fn generate(images: Vec<Buffer>, size: u32) -> DynamicImage {
   // let _max_count = 9;// 最大数量
   let avatar_count = images.len() as u32; // 头像数量
   let border_margin = size / 10; // 边框间距
@@ -25,8 +32,8 @@ fn generate(images: Vec<&str>, size: u32) -> DynamicImage {
   // let bg_color: [ u8; 4 ] = [255, 255, 255, 255]; // 背景颜色
   // let mut result = ImageBuffer::from_fn(size, size, |_x, _y| Rgba(bg_color)); // Start with transparent background
   let mut bg = image::open("bg.jpg").expect("Failed to open image").resize(size, size,image::imageops::FilterType::Lanczos3).into_rgba8();
-  for (index, &image_path) in images.iter().enumerate() {
-      let img = resize_image(image_path, avatar_size);
+  for (index, image_buffer) in images.iter().enumerate() {
+      let img = resize_image(&image_buffer, avatar_size);
       let img = img.thumbnail(avatar_size, avatar_size);
       let row = index as u32 / avatar_per_col + 1;
       let col = index as u32 % avatar_per_col + 1;
@@ -47,8 +54,14 @@ fn generate(images: Vec<&str>, size: u32) -> DynamicImage {
   DynamicImage::ImageRgba8(bg)
 }
 #[napi]
-pub fn generate_group_avatar(images: Vec<&str>, size: u32) -> i32 {
-  let group_avatar = generate(images, 600);
+pub fn generate_group_avatar(images: Vec<Buffer>, size: u32) -> Buffer  {
+  let group_avatar: DynamicImage = generate(images, 600);
+  // 准备一个空的 Vec<u8> 作为缓冲区
+  let mut buf: std::io::Cursor<Vec<u8>> = std::io::Cursor::new(Vec::new());
   group_avatar.save("group_avatar.png").expect("Failed to save group avatar");
-  return 1;
+  // 将 DynamicImage 写入到 buf 中，格式为 PNG
+  group_avatar.write_to(&mut buf, ImageFormat::Png).expect("Failed to write image");
+  let bf = buf.into_inner();
+  Buffer::from(bf)
 }
+
