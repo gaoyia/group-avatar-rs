@@ -1,6 +1,5 @@
 #![deny(clippy::all)]
-use image::{DynamicImage, GenericImageView, ImageBuffer, ImageFormat, RgbImage, Rgba};
-use futures::prelude::*;
+use image::{DynamicImage, ImageBuffer, ImageFormat, Rgba};
 use napi::bindgen_prelude::*;
 #[macro_use]
 extern crate napi_derive;
@@ -28,11 +27,9 @@ fn generate(images: Vec<Buffer>, size: u32,border_margin:u32,margin:u32,bg_file:
   let mut bg: ImageBuffer<Rgba<u8>, Vec<u8>>;
   // 判断 bg_file 是否为空，如果为空则使用默认背景
   if bg_file.is_none() {
-    println!("use default bg");
     let bg_color: [ u8; 4 ] = [222, 222, 222, 255]; // 默认背景颜色
     bg = ImageBuffer::from_fn(size, size, |_x, _y| Rgba(bg_color)); // Start with transparent background
   } else {
-    println!("use bg_file {:?}",bg_file);
     bg = image::open(bg_file.unwrap().as_str()).expect("Failed to open image").resize(size, size,image::imageops::FilterType::Lanczos3).into_rgba8();
   }
 
@@ -96,7 +93,6 @@ async fn generate_group_avatar(cfg: Config) -> Result<Option<Buffer>> {
       bg_file: config.bg_file,
   };
 
-  println!("config: {:?},{:?},{:?},{:?},{:?},{:?}", config.size,config.border_margin,config.margin,config.save_file,config.save_path,config.bg_file);
   napi::tokio::task::spawn(async move { 
     let group_avatar: DynamicImage = generate(
       config.images,

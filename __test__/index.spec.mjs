@@ -3,7 +3,7 @@ import fs from "fs";
 import { generateGroupAvatar } from '../index.js';
 test('buffer to buffer', async (t) => {
   try {
-    fs.rmSync("__test__/cache/group_avatar.png")
+    fs.rmSync("__test__/group_avatar.png")
   } catch (error) {
     
   }
@@ -28,7 +28,7 @@ test('buffer to buffer', async (t) => {
     console.log(error);
     throw error;
   }
-  fs.writeFileSync("__test__/cache/group_avatar.png",res)
-  let fileExist = fs.statSync("__test__/cache/group_avatar.png");
+  fs.writeFileSync("__test__/group_avatar.png",res)
+  let fileExist = fs.statSync("__test__/group_avatar.png");
   t.is(Boolean(fileExist), true)
 })
