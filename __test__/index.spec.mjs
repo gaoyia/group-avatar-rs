@@ -9,9 +9,9 @@ test('buffer to buffer', async (t) => {
   }
 
   let arr = [
-    "avatar1.png",
-    "avatar1.png",
-    "avatar1.png",
+    "__test__/avatar.png",
+    "__test__/avatar.png",
+    "__test__/avatar.png",
   ]
   let files =  arr.map((item)=>{
     return fs.readFileSync(item)
