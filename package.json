@@ -1,6 +1,6 @@
 {
   "name": "group-avatar-rs",
-  "version": "0.0.0",
+  "version": "1.0.1",
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
@@ -33,6 +33,6 @@
     "version": "napi version"
   },
   "optionalDependencies": {
-    "group-avatar-rs-win32-x64-msvc": "0.0.0"
+    "group-avatar-rs-win32-x64-msvc": "1.0.1"
   }
 }
