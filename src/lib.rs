@@ -1,9 +1,7 @@
 #![deny(clippy::all)]
-use std::io::{BufWriter, Read};
-
 use image::{DynamicImage, GenericImageView, ImageBuffer, ImageFormat, RgbImage, Rgba};
-use napi::{bindgen_prelude::Buffer, JsBuffer};
-
+use futures::prelude::*;
+use napi::bindgen_prelude::*;
 #[macro_use]
 extern crate napi_derive;
 
@@ -17,24 +15,29 @@ fn resize_image(image_buffer: &Buffer, target_size: u32) -> DynamicImage {
     let resized = img.resize_to_fill(target_size, target_size, image::imageops::FilterType::Lanczos3);
     resized
 }
-fn generate(images: Vec<Buffer>, size: u32) -> DynamicImage {
+fn generate(images: Vec<Buffer>, size: u32,border_margin:u32,margin:u32,bg_file:Option<String>) -> DynamicImage {
   // let _max_count = 9;// 最大数量
   let avatar_count = images.len() as u32; // 头像数量
-  let border_margin = size / 10; // 边框间距
   let avatar_per_col = (avatar_count as f32).sqrt().ceil() as u32; // 头像的列数
   let avatar_per_row = (avatar_count as f32 / avatar_per_col as f32).ceil() as u32; // 头像的行数
   let residue = avatar_per_col - (avatar_count % avatar_per_col);
-  let margin = size / 30; // 外框边距
   let avatar_size = (size - border_margin*2 - margin * ( avatar_per_col - 1 )) / avatar_per_col; // 计算头像尺寸
   let top_margin = (avatar_size + margin) * ( avatar_per_col - avatar_per_row) / 2; // 顶部边距（整体垂直居中用） = 一个头像和边距除2的距离
   
-  // Load the background image
-  // let bg_color: [ u8; 4 ] = [255, 255, 255, 255]; // 背景颜色
-  // let mut result = ImageBuffer::from_fn(size, size, |_x, _y| Rgba(bg_color)); // Start with transparent background
-  let mut bg = image::open("bg.jpg").expect("Failed to open image").resize(size, size,image::imageops::FilterType::Lanczos3).into_rgba8();
+
+  let mut bg: ImageBuffer<Rgba<u8>, Vec<u8>>;
+  // 判断 bg_file 是否为空，如果为空则使用默认背景
+  if bg_file.is_none() {
+    println!("use default bg");
+    let bg_color: [ u8; 4 ] = [222, 222, 222, 255]; // 默认背景颜色
+    bg = ImageBuffer::from_fn(size, size, |_x, _y| Rgba(bg_color)); // Start with transparent background
+  } else {
+    println!("use bg_file {:?}",bg_file);
+    bg = image::open(bg_file.unwrap().as_str()).expect("Failed to open image").resize(size, size,image::imageops::FilterType::Lanczos3).into_rgba8();
+  }
+
   for (index, image_buffer) in images.iter().enumerate() {
-      let img = resize_image(&image_buffer, avatar_size);
-      let img = img.thumbnail(avatar_size, avatar_size);
+      let img = resize_image(&image_buffer, avatar_size).thumbnail(avatar_size, avatar_size);
       let row = index as u32 / avatar_per_col + 1;
       let col = index as u32 % avatar_per_col + 1;
 
@@ -53,15 +56,85 @@ fn generate(images: Vec<Buffer>, size: u32) -> DynamicImage {
 
   DynamicImage::ImageRgba8(bg)
 }
-#[napi]
-pub fn generate_group_avatar(images: Vec<Buffer>, size: u32) -> Buffer  {
-  let group_avatar: DynamicImage = generate(images, 600);
-  // 准备一个空的 Vec<u8> 作为缓冲区
-  let mut buf: std::io::Cursor<Vec<u8>> = std::io::Cursor::new(Vec::new());
-  group_avatar.save("group_avatar.png").expect("Failed to save group avatar");
-  // 将 DynamicImage 写入到 buf 中，格式为 PNG
-  group_avatar.write_to(&mut buf, ImageFormat::Png).expect("Failed to write image");
-  let bf = buf.into_inner();
-  Buffer::from(bf)
-}
 
+
+#[napi(object)]
+pub struct Config{
+  pub images: Vec<Buffer>,
+  pub size: Option<u32>,
+  pub border_margin: Option<u32>,
+  pub margin: Option<u32>,
+  pub save_file: Option<bool>,
+  pub save_path: Option<String>,
+  pub bg_file: Option<String>,
+}
+impl Config {
+  // 添加一个默认配置的方法
+  pub fn new_default() -> Self {
+      Self {
+          images: Vec::new(),
+          size: Some(600),
+          border_margin: Some(20),
+          margin: Some(20),
+          save_file: Some(false),
+          save_path: Some("group_avatar.png".to_string()),
+          bg_file: None,
+      }
+  }
+}
+#[napi]
+async fn generate_group_avatar(cfg: Config) -> Result<Option<Buffer>> {
+  let config = Config::new_default();
+  // 判断可选配置是否有值，并将值覆盖
+  let config = Config {
+      images: if cfg.images.is_empty() { config.images } else { cfg.images },
+      size: if cfg.size.is_some() { cfg.size } else { config.size },
+      border_margin: if cfg.border_margin.is_some() { cfg.border_margin } else { config.border_margin },
+      margin: if cfg.margin.is_some() { cfg.margin } else { config.margin},
+      save_file: if cfg.save_file.is_some() { cfg.save_file } else { config.save_file },
+      save_path: if cfg.save_path.is_some() { cfg.save_path } else { config.save_path },
+      bg_file: config.bg_file,
+  };
+
+  println!("config: {:?},{:?},{:?},{:?},{:?},{:?}", config.size,config.border_margin,config.margin,config.save_file,config.save_path,config.bg_file);
+  napi::tokio::task::spawn(async move { 
+    let group_avatar: DynamicImage = generate(
+      config.images,
+      config.size.unwrap(),
+      config.border_margin.unwrap(),
+      config.margin.unwrap(),
+      config.bg_file,
+    );
+    if config.save_file.unwrap() {
+      let res = match group_avatar.save(config.save_path.unwrap()) {
+        Ok(_) => Ok(Option::None),
+        Err(e) => {
+          return Err(Error::new(
+            Status::GenericFailure,
+            format!("failed to save file, {}", e),
+          ));
+        }
+      };
+      return res;
+    } else {
+      // 准备一个空的 Vec<u8> 作为缓冲区
+      let mut buf: std::io::Cursor<Vec<u8>> = std::io::Cursor::new(Vec::new());
+      // 将 DynamicImage 写入到 buf 中，格式为 PNG
+      match group_avatar.write_to(&mut buf, ImageFormat::Png) {
+        Ok(_) => {
+          let bf = buf.into_inner();
+          let aa = Buffer::from(bf);
+          return Ok(Some(aa));
+        },
+        Err(e) => {
+          return Err(Error::new(
+            Status::GenericFailure,
+            format!("failed to write_to file, {}", e),
+          ));
+        }
+      }
+    }
+  })
+  .await
+  .unwrap()
+}
