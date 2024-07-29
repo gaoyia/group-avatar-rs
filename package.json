@@ -29,6 +29,8 @@
     "build": "napi build --platform --release",
     "build-ia32": "napi build --platform --release --target=i686-pc-windows-msvc",
     "build-x86_64": "napi build --platform --release --target=x86_64-pc-windows-msvc",
+    "build-x86_64-apple": "napi build --platform --release --target=x86_64-apple-darwin",
+    "build-aarch64-apple": "napi build --platform --release --target=aarch64-apple-darwin",
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",

@@ -43,3 +43,5 @@ export interface Config {
   bgFile?: string // 背景图片路径，暂不支持设置rgba的背景颜色，后续考虑支持
 }
 ```
+
+![](./__test__/group_avatar.png)
