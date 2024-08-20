@@ -9,7 +9,9 @@
       "defaults": false,
       "additional": [
         "x86_64-pc-windows-msvc",
-        "i686-pc-windows-msvc"
+        "i686-pc-windows-msvc",
+        "x86_64-apple-darwin",
+        "aarch64-apple-darwin"
       ]
     }
   },
@@ -39,6 +41,8 @@
   },
   "optionalDependencies": {
     "group-avatar-rs-win32-x64-msvc": "1.0.1",
-    "group-avatar-rs-win32-ia32-msvc": "1.0.1"
+    "group-avatar-rs-win32-ia32-msvc": "1.0.1",
+    "group-avatar-rs-darwin-x64":"1.0.1",
+    "group-avatar-rs-darwin-arm64":"1.0.1"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "group-avatar-rs-darwin-arm64-msvc",
+  "name": "group-avatar-rs-darwin-arm64",
   "version": "1.0.1",
   "os": [
     "darwin"
