@@ -1,6 +1,6 @@
 {
   "name": "group-avatar-rs-darwin-arm64",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "group-avatar-rs.darwin-arm64.node",
   "files": [
     "group-avatar-rs.darwin-arm64.node"

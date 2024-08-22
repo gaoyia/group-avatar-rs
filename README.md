@@ -49,3 +49,9 @@ export interface Config {
 ```
 
 ![](./__test__/group_avatar.png)
+
+你可以根据实际的使用平台情况安装相应的可选依赖
+group-avatar-rs-win32-x64-msvc
+group-avatar-rs-win32-ia32-msvc
+group-avatar-rs-darwin-x64
+group-avatar-rs-darwin-arm64
