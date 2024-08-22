@@ -14,7 +14,7 @@ fn resize_image(image_buffer: &Buffer, target_size: u32) -> DynamicImage {
     let resized = img.resize_to_fill(target_size, target_size, image::imageops::FilterType::Lanczos3);
     resized
 }
-fn generate(images: Vec<Buffer>, size: u32,border_margin:u32,margin:u32,bg_file:Option<String>) -> DynamicImage {
+fn generate(images: Vec<Buffer>, size: u32,border_margin:u32,margin:u32,bg_file:Option<String>,bg_color:[ u8; 4 ]) -> DynamicImage {
   // let _max_count = 9;// 最大数量
   let avatar_count = images.len() as u32; // 头像数量
   let avatar_per_col = (avatar_count as f32).sqrt().ceil() as u32; // 头像的列数
@@ -27,7 +27,6 @@ fn generate(images: Vec<Buffer>, size: u32,border_margin:u32,margin:u32,bg_file:
   let mut bg: ImageBuffer<Rgba<u8>, Vec<u8>>;
   // 判断 bg_file 是否为空，如果为空则使用默认背景
   if bg_file.is_none() {
-    let bg_color: [ u8; 4 ] = [222, 222, 222, 255]; // 默认背景颜色
     bg = ImageBuffer::from_fn(size, size, |_x, _y| Rgba(bg_color)); // Start with transparent background
   } else {
     bg = image::open(bg_file.unwrap().as_str()).expect("Failed to open image").resize(size, size,image::imageops::FilterType::Lanczos3).into_rgba8();
@@ -64,6 +63,7 @@ pub struct Config{
   pub save_file: Option<bool>,
   pub save_path: Option<String>,
   pub bg_file: Option<String>,
+  pub bg_color: Vec<u8>,
 }
 impl Config {
   // 添加一个默认配置的方法
@@ -76,12 +76,29 @@ impl Config {
           save_file: Some(false),
           save_path: Some("group_avatar.png".to_string()),
           bg_file: None,
+          bg_color: Vec::from([222, 222, 222, 255])
+
       }
   }
 }
 #[napi]
 async fn generate_group_avatar(cfg: Config) -> Result<Option<Buffer>> {
   let config = Config::new_default();
+
+  // 如果 cfg.bg_color 长度不等于3且4 ，就返回js的错误
+
+  if cfg.bg_color.len() != 3 && cfg.bg_color.len() != 4 {
+    return Err(Error::new(
+        Status::GenericFailure,
+        format!("bg_color must be rgba 3 or 4 length U8int, but got length{}", cfg.bg_color.len()),
+    ));
+  }
+  let bg_color: [ u8; 4 ] = if cfg.bg_color.len() == 3 {
+    [cfg.bg_color[0], cfg.bg_color[1], cfg.bg_color[2], 255]
+  } else {
+    [cfg.bg_color[0], cfg.bg_color[1], cfg.bg_color[2], cfg.bg_color[3]]
+  };
+
   // 判断可选配置是否有值，并将值覆盖
   let config = Config {
       images: if cfg.images.is_empty() { config.images } else { cfg.images },
@@ -91,6 +108,7 @@ async fn generate_group_avatar(cfg: Config) -> Result<Option<Buffer>> {
       save_file: if cfg.save_file.is_some() { cfg.save_file } else { config.save_file },
       save_path: if cfg.save_path.is_some() { cfg.save_path } else { config.save_path },
       bg_file: config.bg_file,
+      bg_color: bg_color.to_vec()
   };
 
   napi::tokio::task::spawn(async move { 
@@ -100,6 +118,7 @@ async fn generate_group_avatar(cfg: Config) -> Result<Option<Buffer>> {
       config.border_margin.unwrap(),
       config.margin.unwrap(),
       config.bg_file,
+      bg_color
     );
     if config.save_file.unwrap() {
       let res = match group_avatar.save(config.save_path.unwrap()) {

@@ -1,12 +1,6 @@
 {
   "name": "group-avatar-rs-darwin-x64",
-  "version": "1.0.1",
-  "os": [
-    "darwin"
-  ],
-  "cpu": [
-    "x64"
-  ],
+  "version": "1.0.2",
   "main": "group-avatar-rs.darwin-x64.node",
   "files": [
     "group-avatar-rs.darwin-x64.node"

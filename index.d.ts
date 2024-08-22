@@ -11,5 +11,6 @@ export interface Config {
   saveFile?: boolean
   savePath?: string
   bgFile?: string
+  bgColor: Array<number>
 }
 export declare function generateGroupAvatar(cfg: Config): Promise<Buffer | null>

@@ -21,8 +21,9 @@ test('buffer to buffer', async (t) => {
     res = await generateGroupAvatar({
       images:files,
       size:600,
-      margin: 600/30,
-      borderMargin: 600/30,
+      margin: 600 / 20,
+      borderMargin: 600 / 20,
+      bgColor: [0, 0, 0, 0], // RGBA
     })
   } catch (error) {
     console.log(error);
