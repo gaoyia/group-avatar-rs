@@ -63,7 +63,7 @@ pub struct Config{
   pub save_file: Option<bool>,
   pub save_path: Option<String>,
   pub bg_file: Option<String>,
-  pub bg_color: Vec<u8>,
+  pub bg_color: Option<Vec<u8>>,
 }
 impl Config {
   // 添加一个默认配置的方法
@@ -76,7 +76,7 @@ impl Config {
           save_file: Some(false),
           save_path: Some("group_avatar.png".to_string()),
           bg_file: None,
-          bg_color: Vec::from([222, 222, 222, 255])
+          bg_color: None
 
       }
   }
@@ -84,21 +84,22 @@ impl Config {
 #[napi]
 async fn generate_group_avatar(cfg: Config) -> Result<Option<Buffer>> {
   let config = Config::new_default();
-
-  // 如果 cfg.bg_color 长度不等于3且4 ，就返回js的错误
-
-  if cfg.bg_color.len() != 3 && cfg.bg_color.len() != 4 {
-    return Err(Error::new(
-        Status::GenericFailure,
-        format!("bg_color must be rgba 3 or 4 length U8int, but got length{}", cfg.bg_color.len()),
-    ));
-  }
-  let bg_color: [ u8; 4 ] = if cfg.bg_color.len() == 3 {
-    [cfg.bg_color[0], cfg.bg_color[1], cfg.bg_color[2], 255]
+  let bg_color: [u8; 4] = if let Some(ref colors) = cfg.bg_color {
+      if colors.len() == 3 {
+        // 将Vec<u8>转换为[u8; 4]
+        [colors[0], colors[1], colors[2], 255]
+      } else if colors.len() == 4 {
+        [colors[0], colors[1], colors[2], colors[3]]
+      } else {
+        return Err(Error::new(
+          Status::GenericFailure,
+          format!("bg_color must be rgba 3 or 4 length U8int, but got length{}",colors.len()),
+        ));
+      }
   } else {
-    [cfg.bg_color[0], cfg.bg_color[1], cfg.bg_color[2], cfg.bg_color[3]]
+      // 如果cfg_bg_color是None，则使用默认值
+      [0, 0, 0, 0]
   };
-
   // 判断可选配置是否有值，并将值覆盖
   let config = Config {
       images: if cfg.images.is_empty() { config.images } else { cfg.images },
@@ -108,7 +109,7 @@ async fn generate_group_avatar(cfg: Config) -> Result<Option<Buffer>> {
       save_file: if cfg.save_file.is_some() { cfg.save_file } else { config.save_file },
       save_path: if cfg.save_path.is_some() { cfg.save_path } else { config.save_path },
       bg_file: config.bg_file,
-      bg_color: bg_color.to_vec()
+      bg_color:Some(bg_color.to_vec())
   };
 
   napi::tokio::task::spawn(async move { 

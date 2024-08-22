@@ -23,7 +23,7 @@ test('buffer to buffer', async (t) => {
       size:600,
       margin: 600 / 20,
       borderMargin: 600 / 20,
-      bgColor: [0, 0, 0, 0], // RGBA
+      bgColor: [222, 222, 222, 255], // RGBA
     })
   } catch (error) {
     console.log(error);

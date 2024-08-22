@@ -25,7 +25,7 @@ import { generateGroupAvatar } from '../index.js';
       size:600, // 头像的大小
       margin: 600 / 20, // 头像之间的间距
       borderMargin: 600 / 20, // 头像与边框之间的间距
-      bgColor: [0, 0, 0, 0], // RGBA
+      bgColor: [222, 222, 222, 255], // RGBA
     })
   } catch (error) {
     console.log(error);
@@ -43,7 +43,7 @@ export interface Config {
   margin?: number
   saveFile?: boolean // 是否保存文件 ,如果你想直接保存文件省去js的保存文件步骤可以将该选项设置为true
   savePath?: string // 保存文件的路径
-  bgFile?: string // 背景图片路径，后续考虑支持传递buffer类型
+  bgFile?: string // 背景图片路径,如果有背景图优先使用背景图，后续考虑支持传递buffer类型
   bgColor?: Array<number> // 长度3或4的数组，0~255
 }
 ```
