@@ -26,6 +26,10 @@
   "engines": {
     "node": ">= 10"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gaoyia/group-avatar-rs.git"
+  },
   "scripts": {
     "artifacts": "napi artifacts",
     "build": "napi build --platform --release",
