@@ -7,7 +7,7 @@
 ## 使用
 
 ```js
-import { generateGroupAvatar } from '../index.js';
+import { generateGroupAvatar } from 'group-avatar-rs';
 
   let arr = [
     "__test__/avatar.png",
